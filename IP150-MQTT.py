@@ -23,8 +23,8 @@ MQTT_Control_Subscribe = "Paradox/C/"       #e.g. To arm partition 1: Paradox/C/
 Topic_Publish_Zone_States = "Paradox/ZS"
 Topic_Publish_Siren_Status = "Paradox/SS"
 Topic_Publish_Alarm_States = "Paradox/AS"
-Payload_Publish_Zone_States_1 = "OPEN"
-Payload_Publish_Zone_States_0 = "CLOSED"
+Payload_Publish_Zone_States_Open = "OPEN"
+Payload_Publish_Zone_States_Closed = "CLOSED"
 
 
 #Global variables
@@ -440,13 +440,25 @@ if __name__ == '__main__':
 
                 zones = (data.split('tbl_statuszone = new Array'))[1].split(';var')[0]
 
+                # Zone statuses
+                # 0 = Closed
+                # 1 = Opened
+                # 2 = In alarm
+                # 3 = Closed with trouble
+                # 4 = Open with trouble
+                # 5 = Closed with alarm in memory
+                # 6 = Open with alarm in memory
+                # 7 = Bypassed
+                # 8 = Closed with trouble (duplicate?)
+                # 9 = Open with trouble (duplicate?)
+
                 for counter in range (1,TotalZones+1,1):
                     if ZoneStatuses[counter] != int(zones[counter*2-1]):
                         ZoneStatuses[counter] = int(zones[counter*2-1])
-                        if ZoneStatuses[counter] == 1:
-                            newZoneState = Payload_Publish_Zone_States_1
+                        if ZoneStatuses[counter] in [1, 2, 4, 6, 9] :
+                            newZoneState = Payload_Publish_Zone_States_Open
                         else:
-                            newZoneState = Payload_Publish_Zone_States_0
+                            newZoneState = Payload_Publish_Zone_States_Closed
                         client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "S:" + newZoneState + ",P:" + ZoneNames[counter*2-2] + ",N:" + ZoneNames[counter*2-1], qos=0, retain=False)
 
 
@@ -468,6 +480,12 @@ if __name__ == '__main__':
                             newstate = "Entry Delay"
                         elif val == '7':
                             newstate = "Exit Delay"
+                        elif val == '8':
+                            newstate = "Ready to arm"
+                        elif val == '9':
+                            newstate = "Not ready to arm"
+                        elif val == '10':
+                            newstate = "Instant"
                         else:
                             newstate = "Unsure: (" + val + ")"
 
