@@ -23,8 +23,8 @@ MQTT_Control_Subscribe = "Paradox/C/"       #e.g. To arm partition 1: Paradox/C/
 Topic_Publish_Zone_States = "Paradox/ZS"
 Topic_Publish_Siren_Status = "Paradox/SS"
 Topic_Publish_Alarm_States = "Paradox/AS"
-Payload_Publish_Zone_States_Open = "OPEN"
-Payload_Publish_Zone_States_Closed = "CLOSED"
+Payload_Publish_Zone_States_Open = 1
+Payload_Publish_Zone_States_Closed = 0
 
 
 #Global variables
