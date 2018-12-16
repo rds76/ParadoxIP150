@@ -25,6 +25,7 @@ Topic_Publish_Siren_Status = "Paradox/SS"
 Topic_Publish_Alarm_States = "Paradox/AS"
 Payload_Publish_Zone_States_Open = 1
 Payload_Publish_Zone_States_Closed = 0
+Topic_Publish_LWT = "Paradox/LWT"
 
 
 #Global variables
@@ -33,6 +34,7 @@ Control_Partition = ""
 Control_NewState = ""
 State_Machine = 0
 Polling_Enabled = 1
+Mqtt_LWT = ""
 
 def ConfigSectionMap(section):
     dict1 = {}
@@ -103,7 +105,11 @@ def d2h(d):
 
 
 def on_connect(client, userdata, flags, rc):
+    global Mqtt_LWT
     print("Connected to MQTT broker with result code "+str(rc))
+	
+	if Mqtt_LWT != '':
+        client.publish(Mqtt_LWT, 'online', 0, True) 
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
@@ -159,7 +165,8 @@ def connect_ip150socket(address,port):
 
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(10)
+        # make higher timeout as IP150 is a bit slow on http calls
+        s.settimeout(20)
         s.connect((address, port))
     except Exception, e:
         print "Error connecting to IP module: " + repr(e)
@@ -231,7 +238,7 @@ def connect_ip150login():
 
     socketclient.close()
     socketclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    socketclient.settimeout(10)
+    socketclient.settimeout(20)
     socketclient.connect((IP150_IP, IP150_Port))
 
     # Read/discard the reply messages, allow sufficient time for scripts etc to be received before starting to poll the device
@@ -298,11 +305,14 @@ if __name__ == '__main__':
                 Topic_Publish_Alarm_States = Config.get("MQTT Topics","Topic_Publish_Alarm_States")
                 MQTT_Control_Subscribe = Config.get("MQTT Topics","Topic_Subscribe_Control")
                 Topic_Publish_Siren_Status = Config.get("MQTT Topics","Topic_Publish_Siren_Status")
+                Mqtt_LWT = Config.get("MQTT Topics","Topic_Publish_LWT")
 
                 MQTT_IP = Config.get("MQTT Broker","IP")
                 MQTT_Port = int(Config.get("MQTT Broker","Port"))
                 mqtt_username = Config.get("MQTT Broker", "Username")
                 mqtt_password = Config.get("MQTT Broker", "Password")
+                mqtt_password = Config.get("MQTT Broker", "Password")
+                
 
 
                 print "config.ini file read successfully"
@@ -325,8 +335,11 @@ if __name__ == '__main__':
                 client.on_connect = on_connect
                 client.on_message = on_message
                 
-                if mqtt_username != ''
+                if mqtt_username != '':
                    client.username_pw_set(mqtt_username, mqtt_password)
+                
+                if Mqtt_LWT != '':
+                   client.will_set(Mqtt_LWT, 'offline', 0, True) 
 
                 client.connect(MQTT_IP, MQTT_Port, MQTT_KeepAlive)
 
@@ -466,7 +479,9 @@ if __name__ == '__main__':
                         else:
                             newZoneState = Payload_Publish_Zone_States_Closed
                         #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "S:" + newZoneState + ",P:" + ZoneNames[counter*2-2] + ",N:" + ZoneNames[counter*2-1], qos=0, retain=False)
-                        client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), newZoneState, qos=0, retain=False)
+                        #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), newZoneState, qos=0, retain=False)
+                        #make json payload
+                        client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "{'state:'" + newZoneState + ",'area':"+ ZoneNames[counter*2-2] + ",'zone_name':" + ZoneNames[counter*2-1], qos=0, retain=False)
 
 
                 AlarmStatusRead = (data.split('tbl_useraccess = new Array('))[1].split(')')[0].split(',')
@@ -474,19 +489,19 @@ if __name__ == '__main__':
                 for c, val in enumerate(AlarmStatusRead):
                     if AlarmStatus[c] != val:
                         if val == '1':
-                            newstate = "Disarmed"
+                            newstate = "disarmed"
                         elif val == '2':
-                            newstate = "Armed"
+                            newstate = "armed"
                         elif val == '3':
-                            newstate = "Stay"
+                            newstate = "armed_home"
                         elif val == '4':
-                            newstate = "Sleep"
+                            newstate = "armed_away"
                         elif val == '5':
-                            newstate = "Stay"
+                            newstate = "armed_home"
                         elif val == '6':
-                            newstate = "Entry Delay"
+                            newstate = "triggered"
                         elif val == '7':
-                            newstate = "Exit Delay"
+                            newstate = "pending"
                         elif val == '8':
                             newstate = "Ready to arm"
                         elif val == '9':
