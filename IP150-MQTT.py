@@ -108,7 +108,7 @@ def on_connect(client, userdata, flags, rc):
     global Mqtt_LWT
     print("Connected to MQTT broker with result code "+str(rc))
 	
-	if Mqtt_LWT != '':
+    if Mqtt_LWT != '':
         client.publish(Mqtt_LWT, 'online', 0, True) 
 
     # Subscribing in on_connect() means that if we lose the connection and
