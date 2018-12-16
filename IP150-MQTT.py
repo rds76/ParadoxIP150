@@ -301,6 +301,9 @@ if __name__ == '__main__':
 
                 MQTT_IP = Config.get("MQTT Broker","IP")
                 MQTT_Port = int(Config.get("MQTT Broker","Port"))
+                mqtt_username = Config.get("MQTT Broker", "Username")
+                mqtt_password = Config.get("MQTT Broker", "Password")
+
 
                 print "config.ini file read successfully"
                 State_Machine = 1
@@ -321,6 +324,9 @@ if __name__ == '__main__':
                 client = mqtt.Client()
                 client.on_connect = on_connect
                 client.on_message = on_message
+                
+                if mqtt_username != ''
+                   client.username_pw_set(mqtt_username, mqtt_password)
 
                 client.connect(MQTT_IP, MQTT_Port, MQTT_KeepAlive)
 
