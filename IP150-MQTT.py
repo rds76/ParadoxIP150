@@ -18,13 +18,15 @@ MQTT_IP = "10.0.0.130"
 MQTT_Port = 1883
 MQTT_KeepAlive = 60                         #Seconds
 
-MQTT_Control_Subscribe = "Paradox/C/"       #e.g. To arm partition 1: Paradox/C/P1/Arm
-                                            #Options are Arm, Disarm, Stay, Sleep (case sensitive!)
+MQTT_Control_Subscribe = "Paradox/C/"       #e.g. To arm partition 1: Paradox/C/P1
+                                            #Payload are Arm, Disarm, Stay, Sleep (case sensitive!)
+					    #Get status of all areas: Paradox/C/Status
+					    #Disconnect/Connect from paradox site: Paradox/C/Polling/Disable|Enable
 Topic_Publish_Zone_States = "Paradox/ZS"
 Topic_Publish_Siren_Status = "Paradox/SS"
 Topic_Publish_Alarm_States = "Paradox/AS"
 Payload_Publish_Zone_States_Open = 1
-Payload_Publish_Zone_States_Closed = 0
+Payload_Publish_Zone_States_Close = 0
 Topic_Publish_LWT = "Paradox/LWT"
 
 
@@ -35,6 +37,8 @@ Control_NewState = ""
 State_Machine = 0
 Polling_Enabled = 1
 Mqtt_LWT = ""
+AlarmStatus = []
+Oldstates = []
 
 def ConfigSectionMap(section):
     dict1 = {}
@@ -122,6 +126,8 @@ def on_message(client, userdata, msg):
     global Control_NewState
     global Control_Action
     global Polling_Enabled
+    global AlarmStatus
+    global Oldstates
 
     valid_states = ['Arm','Disarm','Sleep','Stay']
 
@@ -137,11 +143,17 @@ def on_message(client, userdata, msg):
             if "Disable" in msg.topic:
                 print "Disable polling message received..."
                 Polling_Enabled = 0
+        elif "Status" in msg.topic:
+	    print "Requested status to MQTT..."
+            AlarmStatus = [None for e in AlarmStatus]
+            Oldstates = [None for e in Oldstates]
         else:
             try:
                 Control_Partition = (topic.split(MQTT_Control_Subscribe + 'P'))[1].split('/')[0]
                 print "Control Partition: ", Control_Partition
-                Control_NewState = (topic.split('/P'+Control_Partition+'/'))[1]
+                #Control_NewState = (topic.split('/P'+Control_Partition+'/'))[1]
+		# get command from payload
+                Control_NewState = msg.payload
                 print "Control's New State: ", Control_NewState
 
                 if Control_NewState == "Arm":
@@ -266,6 +278,8 @@ def connect_ip150readData(socketclient, request):
             socketclient.send(request)
 
             inc_data = socketclient.recv(4096)
+            inc_data += socketclient.recv(4096)
+            inc_data += socketclient.recv(4096)
             inc_data += socketclient.recv(4096)
             inc_data += socketclient.recv(4096)
             inc_data += socketclient.recv(4096)
@@ -406,8 +420,9 @@ if __name__ == '__main__':
 
                 ZoneStatuses = array.array('i', (-1 for i in range(1, TotalZones+2)))
 
-                AlarmStatus = [None] * TotalZones
+                AlarmStatus = [None] * len(AreaNames)
                 SirenStatus = "empty"
+		Oldstates = [None] * len(AreaNames)
 
                 start_time = time.time()
 
@@ -477,26 +492,23 @@ if __name__ == '__main__':
                         if ZoneStatuses[counter] in [1, 2, 4, 6, 9] :
                             newZoneState = Payload_Publish_Zone_States_Open
                         else:
-                            newZoneState = Payload_Publish_Zone_States_Closed
+                            newZoneState = Payload_Publish_Zone_States_Close
                         #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "S:" + newZoneState + ",P:" + ZoneNames[counter*2-2] + ",N:" + ZoneNames[counter*2-1], qos=0, retain=False)
                         #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), newZoneState, qos=0, retain=False)
                         #make json payload
-			if isinstance(newZoneState, int):
-			    nzs = str(newZoneState)
-			else:
-			    nzs = "'" + newZoneState + "'"
                         
-			client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "{'state:'" + nzs + ",'area':" + ZoneNames[counter*2-2] + ",'zone_name':'" + ZoneNames[counter*2-1].strip('\" ') + "'}", qos=0, retain=False)
+                        client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), '{"state":"' + newZoneState + '","area":' + ZoneNames[counter*2-2] + ',"zone_name":"' + ZoneNames[counter*2-1].strip("\" ") + '"}', qos=0, retain=False)
 
 
                 AlarmStatusRead = (data.split('tbl_useraccess = new Array('))[1].split(')')[0].split(',')
                 #print "AlarmStatusRead: " + repr(AlarmStatusRead)
+                #print "AlarmStatus: " + repr(AlarmStatus)
                 for c, val in enumerate(AlarmStatusRead):
                     if AlarmStatus[c] != val:
                         if val == '1':
                             newstate = "disarmed"
                         elif val == '2':
-                            newstate = "armed"
+                            newstate = "armed_away"
                         elif val == '3':
                             newstate = "armed_home"
                         elif val == '4':
@@ -508,15 +520,18 @@ if __name__ == '__main__':
                         elif val == '7':
                             newstate = "pending"
                         elif val == '8':
-                            newstate = "Ready to arm"
+                            newstate = "disarmed" #Ready to arm
                         elif val == '9':
-                            newstate = "Not ready to arm"
+                            newstate = "disarmed" #Not ready to arm
                         elif val == '10':
                             newstate = "Instant"
                         else:
                             newstate = "Unsure: (" + val + ")"
 
-                        client.publish(Topic_Publish_Alarm_States + "/P" + str(c+1), newstate, qos=0, retain=False)
+                        if newstate != Oldstates[c]:
+			   Oldstates[c] = newstate
+                           client.publish(Topic_Publish_Alarm_States + "/P" + str(c+1), newstate, qos=0, retain=False)
+
                 AlarmStatus = AlarmStatusRead
 
                 SirenStatusRead = (data.split('tbl_alarmes = new Array('))[1].split(')')[0]
