@@ -434,7 +434,7 @@ if __name__ == '__main__':
 
             try:
 
-                print(".")
+                #print(".")
 
                 s = connect_ip150socket(IP150_IP, IP150_Port)
 
