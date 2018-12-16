@@ -306,11 +306,12 @@ if __name__ == '__main__':
                 MQTT_Control_Subscribe = Config.get("MQTT Topics","Topic_Subscribe_Control")
                 Topic_Publish_Siren_Status = Config.get("MQTT Topics","Topic_Publish_Siren_Status")
                 Mqtt_LWT = Config.get("MQTT Topics","Topic_Publish_LWT")
+                Payload_Publish_Zone_States_Open = Config.get("MQTT Topics","Payload_Publish_Zone_States_Open")
+                Payload_Publish_Zone_States_Close = Config.get("MQTT Topics","Payload_Publish_Zone_States_Close")
 
                 MQTT_IP = Config.get("MQTT Broker","IP")
                 MQTT_Port = int(Config.get("MQTT Broker","Port"))
-                mqtt_username = Config.get("MQTT Broker", "Username")
-                mqtt_password = Config.get("MQTT Broker", "Password")
+                mqtt_user = Config.get("MQTT Broker", "Username")
                 mqtt_password = Config.get("MQTT Broker", "Password")
                 
 
@@ -335,8 +336,8 @@ if __name__ == '__main__':
                 client.on_connect = on_connect
                 client.on_message = on_message
                 
-                if mqtt_username != '':
-                   client.username_pw_set(mqtt_username, mqtt_password)
+                if mqtt_user != '':
+                   client.username_pw_set(mqtt_user, mqtt_password)
                 
                 if Mqtt_LWT != '':
                    client.will_set(Mqtt_LWT, 'offline', 0, True) 
@@ -406,7 +407,6 @@ if __name__ == '__main__':
                 ZoneStatuses = array.array('i', (-1 for i in range(1, TotalZones+2)))
 
                 AlarmStatus = [None] * TotalZones
-
                 SirenStatus = "empty"
 
                 start_time = time.time()
@@ -481,7 +481,12 @@ if __name__ == '__main__':
                         #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "S:" + newZoneState + ",P:" + ZoneNames[counter*2-2] + ",N:" + ZoneNames[counter*2-1], qos=0, retain=False)
                         #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), newZoneState, qos=0, retain=False)
                         #make json payload
-                        client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "{'state:'" + newZoneState + ",'area':"+ ZoneNames[counter*2-2] + ",'zone_name':" + ZoneNames[counter*2-1], qos=0, retain=False)
+			if isinstance(newZoneState, int):
+			    nzs = str(newZoneState)
+			else:
+			    nzs = "'" + newZoneState + "'"
+                        
+			client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "{'state:'" + nzs + ",'area':" + ZoneNames[counter*2-2] + ",'zone_name':'" + ZoneNames[counter*2-1].strip('\" ') + "'}", qos=0, retain=False)
 
 
                 AlarmStatusRead = (data.split('tbl_useraccess = new Array('))[1].split(')')[0].split(',')
