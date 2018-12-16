@@ -108,7 +108,7 @@ def on_connect(client, userdata, flags, rc):
     global Mqtt_LWT
     print("Connected to MQTT broker with result code "+str(rc))
 	
-    if Mqtt_LWT != '':
+    if Mqtt_LWT and Mqtt_LWT != '':
         client.publish(Mqtt_LWT, 'online', 0, True) 
 
     # Subscribing in on_connect() means that if we lose the connection and
@@ -311,7 +311,7 @@ if __name__ == '__main__':
 
                 MQTT_IP = Config.get("MQTT Broker","IP")
                 MQTT_Port = int(Config.get("MQTT Broker","Port"))
-                mqtt_user = Config.get("MQTT Broker", "Username")
+                mqtt_username = Config.get("MQTT Broker", "Username")
                 mqtt_password = Config.get("MQTT Broker", "Password")
                 
 
@@ -336,10 +336,10 @@ if __name__ == '__main__':
                 client.on_connect = on_connect
                 client.on_message = on_message
                 
-                if mqtt_user != '':
-                   client.username_pw_set(mqtt_user, mqtt_password)
+                if mqtt_username and mqtt_username != '':
+                   client.username_pw_set(mqtt_username, mqtt_password)
                 
-                if Mqtt_LWT != '':
+                if Mqtt_LWT and Mqtt_LWT != '':
                    client.will_set(Mqtt_LWT, 'offline', 0, True) 
 
                 client.connect(MQTT_IP, MQTT_Port, MQTT_KeepAlive)
