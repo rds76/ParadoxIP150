@@ -43,7 +43,7 @@ If successfully connected to your IP150 and MQTT broker, the app will start off 
     * <b>Paradox/C/Status</b>    
     * The payload is not evaluated.
     * All Alarm and Zone statuses are published
- * Script uses alse MQTT connection LWT payload <b>Paradox/LWT</b> with payload <b>online|offline</b>
+ * Script also send on MQTT connection LWT payload <b>Paradox/LWT</b> with payload <b>online|offline</b>. This is usefull to handle availibility on HA.
     
 
 <b>Note: If you modified the subscription topic for controls in the config.ini file ensure it ends with a '/'.</b>
