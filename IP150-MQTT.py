@@ -148,7 +148,7 @@ def on_message(client, userdata, msg):
                 print "Disable polling message received..."
                 Polling_Enabled = 0
         elif "Status" in msg.topic:
-	    print "Requested status to MQTT..."
+            print "Requested status to MQTT..."
             AlarmStatus = [None for e in AlarmStatus]
             Oldstates = [None for e in Oldstates]
             ZoneStatuses = [None for e in ZoneStatuses]
@@ -157,7 +157,7 @@ def on_message(client, userdata, msg):
                 Control_Partition = (topic.split(MQTT_Control_Subscribe + 'P'))[1].split('/')[0]
                 print "Control Partition: ", Control_Partition
                 #Control_NewState = (topic.split('/P'+Control_Partition+'/'))[1]
-		# get command from payload
+                # get command from payload
                 Control_NewState = msg.payload
                 print "Control's New State: ", Control_NewState
 
@@ -282,11 +282,11 @@ def connect_ip150readData(socketclient, request):
 
             socketclient.send(request)
             inc_data = ""
-	    # estimate how much we need to read to get requested number of sensors
-	    iter_no = int(round(Max_zone_number / 12)) + 1
+            # estimate how much we need to read to get requested number of sensors
+            iter_no = int(round(Max_zone_number / 12)) + 1
             while iter_no > 0:
               inc_data += socketclient.recv(4096)
-	      iter_no = iter_no - 1
+              iter_no = iter_no - 1
 
             tries = 0
 
@@ -331,7 +331,7 @@ if __name__ == '__main__':
                 MQTT_Port = int(Config.get("MQTT Broker","Port"))
                 mqtt_username = Config.get("MQTT Broker", "Username")
                 mqtt_password = Config.get("MQTT Broker", "Password")
-                
+
 
 
                 print "config.ini file read successfully"
@@ -353,10 +353,10 @@ if __name__ == '__main__':
                 client = mqtt.Client()
                 client.on_connect = on_connect
                 client.on_message = on_message
-                
+
                 if mqtt_username and mqtt_username != '':
                    client.username_pw_set(mqtt_username, mqtt_password)
-                
+
                 if Mqtt_LWT and Mqtt_LWT != '':
                    client.will_set(Mqtt_LWT, 'offline', 0, True) 
 
@@ -426,7 +426,7 @@ if __name__ == '__main__':
 
                 AlarmStatus = [None] * len(AreaNames)
                 SirenStatus = "empty"
-		Oldstates = [None] * len(AreaNames)
+                Oldstates = [None] * len(AreaNames)
 
                 start_time = time.time()
 
@@ -500,7 +500,7 @@ if __name__ == '__main__':
                         #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), "S:" + newZoneState + ",P:" + ZoneNames[counter*2-2] + ",N:" + ZoneNames[counter*2-1], qos=0, retain=False)
                         #client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), newZoneState, qos=0, retain=False)
                         #make json payload
-                        
+
                         client.publish(Topic_Publish_Zone_States + "/Z" + str(counter), '{"state":"' + newZoneState + '","area":' + ZoneNames[counter*2-2] + ',"zone_name":"' + ZoneNames[counter*2-1].strip("\" ") + '"}', qos=0, retain=False)
 
 
