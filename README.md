@@ -5,6 +5,8 @@ Python-based IP150 interrogator that publishes data and subscribes to control co
 
 <b>Another version of this script (using the software port & also has access to alarm outputs (PGMs)) is available in my ParadoxIP150v2 repository. Tested only with MG5050 V4, for other variants I hope the community will assist with PRs.</b>
 
+<b>Note: this forked updated release is tested with EVO192 + IP150 system</b>
+
 ## Steps to use it:
 1.  Tested with Python 2.7.10
 2.  Download the files in this repository and place it in some directory
@@ -24,6 +26,7 @@ If successfully connected to your IP150 and MQTT broker, the app will start off 
   * (AS = Alarm Status (Arm, Disarm, etc.); P = Partition, followed by the partition number)
     * Payload (example):  <b>disarmed</b>
     * (Possible states = disarmed, armed_home, armed_away, Unsure) /armed_home = Stay; armed_away = Armed/
+    * *Was adjusted to work with HA. Alarm system has up to 9 different states, but it is encoded into 4 known by HA, only changed HA states are published
 * Siren status:
   * Topic: <b>Paradox/SS</b>
   * (SS = Siren Status)
