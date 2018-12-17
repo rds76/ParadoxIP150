@@ -29,6 +29,8 @@ Payload_Publish_Zone_States_Open = 1
 Payload_Publish_Zone_States_Close = 0
 Topic_Publish_LWT = "Paradox/LWT"
 
+Max_zone_number = 50			   #We are estimate how many bytes we need to read from site
+
 
 #Global variables
 Control_Action = 0
@@ -39,6 +41,7 @@ Polling_Enabled = 1
 Mqtt_LWT = ""
 AlarmStatus = []
 Oldstates = []
+ZoneStatuses = []
 
 def ConfigSectionMap(section):
     dict1 = {}
@@ -128,6 +131,7 @@ def on_message(client, userdata, msg):
     global Polling_Enabled
     global AlarmStatus
     global Oldstates
+    global ZoneStatuses
 
     valid_states = ['Arm','Disarm','Sleep','Stay']
 
@@ -147,6 +151,7 @@ def on_message(client, userdata, msg):
 	    print "Requested status to MQTT..."
             AlarmStatus = [None for e in AlarmStatus]
             Oldstates = [None for e in Oldstates]
+            ZoneStatuses = [None for e in ZoneStatuses]
         else:
             try:
                 Control_Partition = (topic.split(MQTT_Control_Subscribe + 'P'))[1].split('/')[0]
@@ -263,7 +268,7 @@ def connect_ip150login():
     print "Waiting for initial data to be received (scripts, etc.)..."
     for timer in range(1, 8, 1):
         time.sleep(1)
-        print "."
+        #print "."
 
     return u, p, socketclient
 
@@ -276,13 +281,12 @@ def connect_ip150readData(socketclient, request):
         try:
 
             socketclient.send(request)
-
-            inc_data = socketclient.recv(4096)
-            inc_data += socketclient.recv(4096)
-            inc_data += socketclient.recv(4096)
-            inc_data += socketclient.recv(4096)
-            inc_data += socketclient.recv(4096)
-            inc_data += socketclient.recv(4096)
+            inc_data = ""
+	    # estimate how much we need to read to get requested number of sensors
+	    iter_no = int(round(Max_zone_number / 12)) + 1
+            while iter_no > 0:
+              inc_data += socketclient.recv(4096)
+	      iter_no = iter_no - 1
 
             tries = 0
 
@@ -411,7 +415,7 @@ if __name__ == '__main__':
                 AreaNames = (data.split('tbl_areanam = new Array('))[1].split(');')[0].split(',')
                 print "Area Names: ", AreaNames
                 ZoneNames = (data.split('tbl_zone = new Array('))[1].split(');')[0].split(',')
-                print "Zone Names & Partition assignment: ", ZoneNames
+                #print "Zone Names & Partition assignment: ", ZoneNames
                 s.close()
 
                 TotalZones = int(round(len(ZoneNames)/2))
@@ -529,7 +533,7 @@ if __name__ == '__main__':
                             newstate = "Unsure: (" + val + ")"
 
                         if newstate != Oldstates[c]:
-			   Oldstates[c] = newstate
+                           Oldstates[c] = newstate
                            client.publish(Topic_Publish_Alarm_States + "/P" + str(c+1), newstate, qos=0, retain=False)
 
                 AlarmStatus = AlarmStatusRead
